@@ -1,7 +1,4 @@
-# Language Agnostic Chatbot 🎓
-**Smart India Hackathon 2025 | Problem Statement ID: SIH25104**  
-**Theme:** Smart Education | **Category:** Software  
-**Team ID:** 55812 | **Team Name:** TEAM TECHTITANS_RGUKTN (RGUKT Nuzvid)
+
 
 ---
 
