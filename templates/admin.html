@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Circulars Management Portal | RGUKTN</title>
+  <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+
+  <!-- Navigation Bar -->
+  <header class="navbar">
+    <div class="brand-section">
+      <div class="brand-logo">📤</div>
+      <div class="brand-text">
+        <h1>Volunteer Portal • Circulars & Knowledge Base</h1>
+        <p>Smart India Hackathon 2025 • Team TechTitans RGUKTN</p>
+      </div>
+    </div>
+    <nav class="nav-links">
+      <a href="/" class="nav-item">💬 Student Chat</a>
+      <a href="/admin" class="nav-item active">📤 Upload Circulars</a>
+      <a href="/faculty" class="nav-item">👨‍🏫 Faculty Portal</a>
+      <a href="/simulator" class="nav-item">📱 WhatsApp & Telegram</a>
+    </nav>
+  </header>
+
+  <main class="container">
+    <!-- Notice / Operational Feasibility Banner -->
+    <div style="background: #e0f2fe; border: 1px solid #bae6fd; border-radius: 10px; padding: 14px 18px; margin-bottom: 20px; display: flex; align-items: center; justify-content: space-between;">
+      <div>
+        <strong style="color: #0369a1;">Operational Sustainability:</strong>
+        <span style="color: #0c4a6e; font-size: 0.9rem;">
+          Student volunteers upload official notices and circulars here. All documents are automatically chunked and indexed into MiniLM vector embeddings for 24/7 student retrieval.
+        </span>
+      </div>
+      <span class="badge" style="background: #0284c7; color: white;">Volunteer Access</span>
+    </div>
+
+    <!-- Upload Circular Form Card -->
+    <div class="card">
+      <div class="card-title">
+        <span>📄 Upload New College Circular / Announcement</span>
+      </div>
+      <form id="uploadForm" enctype="multipart/form-data">
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; margin-bottom: 16px;">
+          <div>
+            <label style="display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 6px;">Circular Title *</label>
+            <input type="text" name="title" id="title" class="input-field" style="width: 100%; border-radius: 8px;" placeholder="e.g. Semester Fee Payment Last Date Extended" required>
+          </div>
+          <div>
+            <label style="display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 6px;">Circular / Reference No.</label>
+            <input type="text" name="circular_no" id="circular_no" class="input-field" style="width: 100%; border-radius: 8px;" placeholder="e.g. RGUKTN/ACAD/2025/12">
+          </div>
+          <div>
+            <label style="display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 6px;">Category</label>
+            <select name="category" id="category" class="lang-select" style="width: 100%; padding: 10px; border-radius: 8px;">
+              <option value="Examinations">Examinations & Fees</option>
+              <option value="Academics">Academic Calendar & Timetable</option>
+              <option value="Scholarships">Scholarships & JVD</option>
+              <option value="Hostel">Hostel & Mess Regulations</option>
+              <option value="Placements">Training & Placements</option>
+              <option value="General">General Campus Notice</option>
+            </select>
+          </div>
+          <div>
+            <label style="display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 6px;">Issue Date</label>
+            <input type="text" name="issue_date" id="issue_date" class="input-field" style="width: 100%; border-radius: 8px;" placeholder="DD/MM/YYYY">
+          </div>
+        </div>
+
+        <div style="margin-bottom: 16px;">
+          <label style="display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 6px;">Upload PDF File (Optional if entering text below)</label>
+          <input type="file" name="file" id="file" accept=".pdf,.txt,.md" style="font-size: 0.9rem;">
+        </div>
+
+        <div style="margin-bottom: 16px;">
+          <label style="display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 6px;">Circular Content / Text *</label>
+          <textarea name="content" id="content" rows="6" class="input-field" style="width: 100%; border-radius: 8px; font-family: monospace; font-size: 0.88rem;" placeholder="Paste the text from the circular, guidelines, fee amounts, deadlines, or instructions here..."></textarea>
+        </div>
+
+        <button type="submit" class="btn-send" style="border-radius: 8px; padding: 10px 24px;">
+          🚀 Index & Ingest into RAG Vector Store
+        </button>
+      </form>
+    </div>
+
+    <!-- Active Circulars Table -->
+    <div class="card">
+      <div class="card-title" style="justify-content: space-between;">
+        <span>📋 Currently Active Indexed Circulars ({{ circulars | length }})</span>
+      </div>
+
+      <div class="table-responsive">
+        <table>
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Ref No.</th>
+              <th>Circular Title</th>
+              <th>Category</th>
+              <th>Issue Date</th>
+              <th>Vector Chunks</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for c in circulars %}
+            <tr>
+              <td><strong>#{{ c.id }}</strong></td>
+              <td><code>{{ c.circular_no or 'N/A' }}</code></td>
+              <td>
+                <strong>{{ c.title }}</strong>
+                <div style="font-size: 0.78rem; color: #64748b; margin-top: 4px;">{{ c.summary }}</div>
+              </td>
+              <td><span class="badge" style="background: #f1f5f9; color: #334155;">{{ c.category }}</span></td>
+              <td>{{ c.issue_date or 'Recent' }}</td>
+              <td><span class="badge" style="background: #e0e7ff; color: #4338ca;">{{ c.chunk_count }} Chunks</span></td>
+              <td>
+                <button class="btn-speaker" style="color: #ef4444;" title="Delete Circular" onclick="deleteCircular({{ c.id }})">🗑️ Delete</button>
+              </td>
+            </tr>
+            {% endfor %}
+            {% if not circulars %}
+            <tr>
+              <td colspan="7" style="text-align: center; color: #64748b; padding: 24px;">
+                No circulars indexed yet. Add your first notice above.
+              </td>
+            </tr>
+            {% endif %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </main>
+
+  <script src="/static/js/admin.js"></script>
+</body>
+</html>
+

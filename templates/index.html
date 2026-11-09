@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Language Agnostic Campus Chatbot | SIH 2025</title>
+  <link rel="stylesheet" href="/static/css/style.css">
+  <script>
+    window.SPEECH_CODES = {{ speech_codes | tojson }};
+  </script>
+</head>
+<body>
+
+  <!-- Navigation Bar -->
+  <header class="navbar">
+    <div class="brand-section">
+      <div class="brand-logo">🎓</div>
+      <div class="brand-text">
+        <h1>Campus Bot • RGUKTN</h1>
+        <p>Smart India Hackathon 2025 (SIH25104) • Team TechTitans</p>
+      </div>
+    </div>
+    <nav class="nav-links">
+      <a href="/" class="nav-item active">💬 Student Chat</a>
+      <a href="/admin" class="nav-item">📤 Upload Circulars</a>
+      <a href="/faculty" class="nav-item">👨‍🏫 Faculty Portal</a>
+      <a href="/simulator" class="nav-item">📱 WhatsApp & Telegram <span class="nav-badge">Live</span></a>
+    </nav>
+  </header>
+
+  <!-- Main Container -->
+  <main class="container">
+    <div class="chat-layout">
+      
+      <!-- Sidebar / Quick FAQs -->
+      <aside class="sidebar">
+        <div>
+          <h3>💡 Frequently Asked</h3>
+          <p style="font-size: 0.8rem; color: #64748b; margin-bottom: 12px;">
+            Click to ask in Telugu, Hindi, or English:
+          </p>
+          <div class="chip-group">
+            <button class="query-chip" onclick="askQuestion('ఫీజు చెల్లించడానికి చివరి తేదీ ఎప్పుడు?', 'te')">
+              <strong>ఫీజు చెల్లించడానికి చివరి తేదీ ఎప్పుడు?</strong>
+              <span class="chip-lang">Telugu • Fee Payment Deadline</span>
+            </button>
+
+            <button class="query-chip" onclick="askQuestion('Exam form kab bharna hai?', 'hi')">
+              <strong>Exam form kab bharna hai?</strong>
+              <span class="chip-lang">Hinglish • Exam Form Date</span>
+            </button>
+
+            <button class="query-chip" onclick="askQuestion('Time table kab tak aega?', 'hi')">
+              <strong>Time table kab tak aega?</strong>
+              <span class="chip-lang">Hindi • Academic Calendar</span>
+            </button>
+
+            <button class="query-chip" onclick="askQuestion('Scholarship application details and eligibility?', 'en')">
+              <strong>Scholarship application details?</strong>
+              <span class="chip-lang">English • JVD & NSP Details</span>
+            </button>
+
+            <button class="query-chip" onclick="askQuestion('Hostel mess timings aur rules kya hain?', 'hi')">
+              <strong>Hostel mess timings & rules?</strong>
+              <span class="chip-lang">Hinglish • Campus Dining & Gate</span>
+            </button>
+          </div>
+        </div>
+
+        <div style="background: #f8fafc; border-radius: 8px; padding: 12px; font-size: 0.78rem; border: 1px solid #e2e8f0;">
+          <h4 style="color: #1e293b; margin-bottom: 6px; font-weight: 700;">✨ Core Capabilities</h4>
+          <ul style="padding-left: 16px; color: #475569; line-height: 1.5;">
+            <li>22 Indian Languages Translation with Script Unification</li>
+            <li>RAG semantic search over College Circulars</li>
+            <li>Gemma-2 LLM concise factual answers</li>
+            <li>Auto-redirection to Faculty for unanswered queries</li>
+            <li>Built-in Voice Input (Speech-to-Text) & Output (Text-to-Speech)</li>
+          </ul>
+        </div>
+      </aside>
+
+      <!-- Chat Area -->
+      <section class="chat-wrapper">
+        <!-- Chat Header -->
+        <div class="chat-header">
+          <div class="chat-header-left">
+            <div class="status-dot"></div>
+            <div>
+              <div class="header-title">RGUKT Student Helpline</div>
+              <div class="header-sub">Multilingual Campus Assistance • Active 24/7</div>
+            </div>
+          </div>
+
+          <!-- Language Selector -->
+          <div class="lang-select-box">
+            <label for="preferredLang">🌐 Language:</label>
+            <select id="preferredLang" class="lang-select">
+              {% for code, name in languages.items() %}
+                <option value="{{ code }}">{{ name }}</option>
+              {% endfor %}
+            </select>
+          </div>
+        </div>
+
+        <!-- Messages Box -->
+        <div id="messagesContainer" class="messages-container">
+          <div class="message-row">
+            <div class="message-avatar avatar-bot">🤖</div>
+            <div class="bubble bubble-bot">
+              <p><strong>Namaskaram! Welcome to RGUKT Campus Helpline.</strong></p>
+              <p style="margin-top: 4px;">
+                You can ask any question regarding college circulars, fee deadlines, exam dates, hostel rules, or scholarships in <strong>any Indian language</strong> (Telugu, Hindi, Bengali, Tamil, etc.) using text or voice!
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Chat Input Bar -->
+        <div class="chat-input-bar">
+          <button id="micBtn" class="btn-mic" title="Voice Input (Speak your question)" onclick="toggleVoice()">
+            🎙️
+          </button>
+
+          <input 
+            type="text" 
+            id="chatInput" 
+            class="input-field" 
+            placeholder="Type your question or click the mic to speak in any language..."
+            autocomplete="off"
+          />
+
+          <button class="btn-send" onclick="sendMessage()">
+            <span>Send</span> ➤
+          </button>
+        </div>
+      </section>
+
+    </div>
+  </main>
+
+  <script src="/static/js/app.js"></script>
+</body>
+</html>
+

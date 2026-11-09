@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Faculty Escalation Portal | RGUKTN</title>
+  <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+
+  <!-- Navigation Bar -->
+  <header class="navbar">
+    <div class="brand-section">
+      <div class="brand-logo" style="background: linear-gradient(135deg, #059669, #10b981);">👨‍🏫</div>
+      <div class="brand-text">
+        <h1>Faculty Portal • Query Resolution Desk</h1>
+        <p>Smart India Hackathon 2025 • Auto-Redirect Escalation Management</p>
+      </div>
+    </div>
+    <nav class="nav-links">
+      <a href="/" class="nav-item">💬 Student Chat</a>
+      <a href="/admin" class="nav-item">📤 Upload Circulars</a>
+      <a href="/faculty" class="nav-item active">👨‍🏫 Faculty Portal</a>
+      <a href="/simulator" class="nav-item">📱 WhatsApp & Telegram</a>
+    </nav>
+  </header>
+
+  <main class="container">
+    <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 10px; padding: 14px 18px; margin-bottom: 20px; display: flex; align-items: center; justify-content: space-between;">
+      <div>
+        <strong style="color: #166534;">Human-in-the-Loop Redirection:</strong>
+        <span style="color: #14532d; font-size: 0.9rem;">
+          When a student's query cannot be answered from existing college circulars with high confidence, it is automatically routed here. Your English replies are automatically translated back into the student's native regional language.
+        </span>
+      </div>
+      <span class="badge" style="background: #16a34a; color: white;">Faculty Desk</span>
+    </div>
+
+    <!-- Tickets Card -->
+    <div class="card">
+      <div class="card-title" style="justify-content: space-between;">
+        <span>📬 Escalated Student Inquiries ({{ tickets | length }})</span>
+      </div>
+
+      <div class="table-responsive">
+        <table>
+          <thead>
+            <tr>
+              <th>Ticket ID</th>
+              <th>Student & Language</th>
+              <th>Original Query</th>
+              <th>Translated Query (English)</th>
+              <th>Department</th>
+              <th>Status</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for t in tickets %}
+            <tr>
+              <td><code>{{ t.ticket_id }}</code></td>
+              <td>
+                <strong>{{ t.student_name or 'Student' }}</strong>
+                <div style="font-size: 0.78rem; color: #475569;">Lang: <strong>{{ t.student_lang | upper }}</strong></div>
+              </td>
+              <td>
+                <div style="font-weight: 500; color: #1e293b;">"{{ t.original_query }}"</div>
+              </td>
+              <td>
+                <div style="color: #0369a1; font-size: 0.85rem;">"{{ t.translated_query }}"</div>
+              </td>
+              <td>{{ t.department }}</td>
+              <td>
+                {% if t.status == 'Open' %}
+                  <span class="badge badge-open">Open</span>
+                {% else %}
+                  <span class="badge badge-resolved">Resolved</span>
+                {% endif %}
+              </td>
+              <td>
+                {% if t.status == 'Open' %}
+                  <button class="btn-send" style="padding: 6px 14px; font-size: 0.8rem; border-radius: 6px;" 
+                          onclick="openReplyModal('{{ t.ticket_id }}', '{{ t.translated_query | replace('\'', '\\\'') }}', '{{ t.student_lang }}')">
+                    ✍️ Answer
+                  </button>
+                {% else %}
+                  <div style="font-size: 0.78rem; color: #059669;">
+                    ✓ Answered<br>
+                    <span style="color: #64748b; font-style: italic;">"{{ t.faculty_reply }}"</span>
+                  </div>
+                {% endif %}
+              </td>
+            </tr>
+            {% endfor %}
+            {% if not tickets %}
+            <tr>
+              <td colspan="7" style="text-align: center; color: #64748b; padding: 24px;">
+                🎉 All student inquiries are currently resolved. No pending escalated tickets!
+              </td>
+            </tr>
+            {% endif %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </main>
+
+  <!-- Reply Modal -->
+  <div id="replyModal" class="modal-overlay">
+    <div class="modal-content">
+      <h3 style="margin-bottom: 12px; color: #1e293b;">✍️ Respond to Student Inquiry</h3>
+      <p id="modalStudentQuery" style="font-size: 0.88rem; color: #0369a1; background: #f0f9ff; padding: 10px; border-radius: 6px; margin-bottom: 14px;"></p>
+
+      <form id="replyForm">
+        <input type="hidden" id="modalTicketId">
+        <div style="margin-bottom: 12px;">
+          <label style="display: block; font-size: 0.82rem; font-weight: 600; margin-bottom: 4px;">Faculty Name / Title</label>
+          <input type="text" id="modalFacultyName" class="input-field" style="width: 100%; border-radius: 6px;" value="Prof. K. Sharma (Academic Dean)">
+        </div>
+
+        <div style="margin-bottom: 14px;">
+          <label style="display: block; font-size: 0.82rem; font-weight: 600; margin-bottom: 4px;">Official Answer (in English)</label>
+          <textarea id="modalReplyText" rows="4" class="input-field" style="width: 100%; border-radius: 6px;" placeholder="Type the official clarification or procedure here..." required></textarea>
+          <small style="color: #64748b; font-size: 0.75rem;">Your response will automatically be translated to the student's regional language upon submission.</small>
+        </div>
+
+        <div style="display: flex; justify-content: flex-end; gap: 8px;">
+          <button type="button" class="btn-mic" style="border-radius: 6px; width: auto; padding: 8px 16px; font-size: 0.85rem;" onclick="closeReplyModal()">Cancel</button>
+          <button type="submit" class="btn-send" style="border-radius: 6px; padding: 8px 20px;">Submit Response</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    function openReplyModal(ticketId, query, lang) {
+      document.getElementById("modalTicketId").value = ticketId;
+      document.getElementById("modalStudentQuery").innerText = `Question: "${query}" (Language: ${lang.toUpperCase()})`;
+      document.getElementById("modalReplyText").value = "";
+      document.getElementById("replyModal").style.display = "flex";
+    }
+
+    function closeReplyModal() {
+      document.getElementById("replyModal").style.display = "none";
+    }
+
+    document.getElementById("replyForm").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const ticketId = document.getElementById("modalTicketId").value;
+      const reply = document.getElementById("modalReplyText").value.trim();
+      const faculty = document.getElementById("modalFacultyName").value.trim();
+
+      if (!reply) return;
+
+      try {
+        const res = await fetch("/api/faculty/reply", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            ticket_id: ticketId,
+            reply: reply,
+            assigned_faculty: faculty
+          })
+        });
+
+        const data = await res.json();
+        if (res.ok) {
+          alert(`Response successfully submitted!\nTranslated for student: "${data.translated_reply}"`);
+          window.location.reload();
+        } else {
+          alert("Error: " + (data.error || "Failed to submit reply"));
+        }
+      } catch (err) {
+        console.error("Reply error:", err);
+        alert("Server error submitting reply.");
+      }
+    });
+  </script>
+</body>
+</html>
+

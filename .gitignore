@@ -1,0 +1,74 @@
+# Python & Bytecode
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual Environments
+venv/
+.venv/
+env/
+ENV/
+env.bak/
+venv.bak/
+
+# Environment Variables & Secrets
+.env
+.env.local
+.env.*.local
+
+# Databases & Runtime SQLite Storage
+*.sqlite
+*.sqlite3
+*.db
+data/campus_bot.db
+data/campus_bot.db-wal
+data/campus_bot.db-shm
+
+# Vector Store / ChromaDB Data
+data/chromadb/
+chromadb/
+.chroma/
+
+# Hugging Face & Sentence Transformers Cache
+.cache/
+huggingface/
+torch/
+
+# Logs
+*.log
+logs/
+
+# IDE & Editor Settings
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Operating System Files
+.DS_Store
+Thumbs.db
+desktop.ini
+$RECYCLE.BIN/
+
+# Docker (if not used)
+Dockerfile
+docker-compose.yml
+

@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>WhatsApp & Telegram Simulator | RGUKTN Campus Bot</title>
+  <link rel="stylesheet" href="/static/css/style.css">
+  <style>
+    .simulator-container {
+      display: flex;
+      justify-content: center;
+      gap: 30px;
+      margin-top: 10px;
+      flex-wrap: wrap;
+    }
+
+    /* Phone Frame styling */
+    .phone-mockup {
+      width: 360px;
+      height: 680px;
+      background: #111b21;
+      border-radius: 40px;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.4);
+      border: 8px solid #2d3748;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      position: relative;
+    }
+
+    /* WhatsApp Theme */
+    .wa-header {
+      background: #008069;
+      color: white;
+      padding: 12px 16px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .wa-avatar {
+      width: 36px;
+      height: 36px;
+      background: white;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.2rem;
+    }
+    .wa-chat-body {
+      flex: 1;
+      background: #efeae2;
+      background-image: radial-gradient(#d1d7db 1px, transparent 1px);
+      background-size: 16px 16px;
+      padding: 14px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .wa-msg {
+      max-width: 80%;
+      padding: 8px 12px;
+      border-radius: 8px;
+      font-size: 0.85rem;
+      line-height: 1.4;
+      box-shadow: 0 1px 1px rgba(0,0,0,0.1);
+      position: relative;
+    }
+    .wa-msg-in {
+      background: white;
+      color: #111b21;
+      align-self: flex-start;
+      border-top-left-radius: 0;
+    }
+    .wa-msg-out {
+      background: #d9fdd3;
+      color: #111b21;
+      align-self: flex-end;
+      border-top-right-radius: 0;
+    }
+    .wa-time {
+      font-size: 0.65rem;
+      color: #667781;
+      float: right;
+      margin-left: 8px;
+      margin-top: 4px;
+    }
+    .wa-input-bar {
+      background: #f0f2f5;
+      padding: 8px 10px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    /* Telegram Theme */
+    .tg-phone {
+      background: #17212b;
+    }
+    .tg-header {
+      background: #242f3d;
+      color: white;
+      padding: 12px 16px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .tg-chat-body {
+      flex: 1;
+      background: #0e1621;
+      padding: 14px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .tg-msg {
+      max-width: 80%;
+      padding: 8px 12px;
+      border-radius: 12px;
+      font-size: 0.85rem;
+      line-height: 1.4;
+    }
+    .tg-msg-in {
+      background: #182533;
+      color: #f5f5f5;
+      align-self: flex-start;
+      border-bottom-left-radius: 2px;
+    }
+    .tg-msg-out {
+      background: #2b5278;
+      color: #ffffff;
+      align-self: flex-end;
+      border-bottom-right-radius: 2px;
+    }
+    .tg-input-bar {
+      background: #17212b;
+      padding: 8px 10px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Navigation Bar -->
+  <header class="navbar">
+    <div class="brand-section">
+      <div class="brand-logo" style="background: linear-gradient(135deg, #10b981, #06b6d4);">📱</div>
+      <div class="brand-text">
+        <h1>Multi-channel Simulator • WhatsApp & Telegram</h1>
+        <p>Smart India Hackathon 2025 • Interactive Device Preview</p>
+      </div>
+    </div>
+    <nav class="nav-links">
+      <a href="/" class="nav-item">💬 Student Chat</a>
+      <a href="/admin" class="nav-item">📤 Upload Circulars</a>
+      <a href="/faculty" class="nav-item">👨‍🏫 Faculty Portal</a>
+      <a href="/simulator" class="nav-item active">📱 WhatsApp & Telegram</a>
+    </nav>
+  </header>
+
+  <main class="container">
+    <div style="text-align: center; margin-bottom: 12px;">
+      <h2 style="color: #1e293b; font-size: 1.3rem;">📲 Test Campus Bot on Messaging Platforms</h2>
+      <p style="color: #64748b; font-size: 0.85rem;">
+        Experience the exact student conversational flow via WhatsApp and Telegram integrations.
+      </p>
+    </div>
+
+    <div class="simulator-container">
+      
+      <!-- WhatsApp Mockup -->
+      <div class="phone-mockup">
+        <div class="wa-header">
+          <div class="wa-avatar">🤖</div>
+          <div style="flex: 1;">
+            <div style="font-weight: 600; font-size: 0.95rem;">RGUKT Campus Bot</div>
+            <div style="font-size: 0.72rem; opacity: 0.9;">online • official assistant</div>
+          </div>
+        </div>
+
+        <div id="waChatBody" class="wa-chat-body">
+          <div class="wa-msg wa-msg-in">
+            👋 Namaste Mohan Vinay Raj!<br>
+            Welcome to RGUKT Helpline. How can I assist you with college circulars or notices today?
+            <span class="wa-time">Now</span>
+          </div>
+        </div>
+
+        <div class="wa-input-bar">
+          <input type="text" id="waInput" placeholder="Message RGUKT Bot..." class="input-field" style="background: white; padding: 8px 14px; font-size: 0.85rem;">
+          <button class="btn-send" style="padding: 8px 14px; border-radius: 50%; width: 38px; height: 38px; justify-content: center;" onclick="sendSimulatorMsg('wa')">
+            ➤
+          </button>
+        </div>
+      </div>
+
+      <!-- Telegram Mockup -->
+      <div class="phone-mockup tg-phone">
+        <div class="tg-header">
+          <div class="wa-avatar" style="background: #2b5278; color: white;">✈️</div>
+          <div style="flex: 1;">
+            <div style="font-weight: 600; font-size: 0.95rem;">@RGUKTCampusBot</div>
+            <div style="font-size: 0.72rem; color: #6c7883;">bot • Multilingual 24/7</div>
+          </div>
+        </div>
+
+        <div id="tgChatBody" class="tg-chat-body">
+          <div class="tg-msg tg-msg-in">
+            🤖 <strong>RGUKT Assistant Active</strong><br>
+            Ask any question in Telugu, Hindi, or English.
+            <div style="font-size: 0.65rem; color: #6c7883; text-align: right; margin-top: 4px;">12:00</div>
+          </div>
+        </div>
+
+        <div class="tg-input-bar">
+          <input type="text" id="tgInput" placeholder="Write a message..." class="input-field" style="background: #242f3d; color: white; border-color: #242f3d; padding: 8px 14px; font-size: 0.85rem;">
+          <button class="btn-send" style="background: #2aabee; padding: 8px 14px; border-radius: 50%; width: 38px; height: 38px; justify-content: center;" onclick="sendSimulatorMsg('tg')">
+            ➤
+          </button>
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+  <script>
+    async function sendSimulatorMsg(platform) {
+      const input = document.getElementById(platform + "Input");
+      const chatBody = document.getElementById(platform + "ChatBody");
+      const text = input ? input.value.trim() : "";
+      if (!text) return;
+      input.value = "";
+
+      // Append Outgoing Message
+      if (platform === "wa") {
+        chatBody.innerHTML += `
+          <div class="wa-msg wa-msg-out">
+            ${escapeHtml(text)}
+            <span class="wa-time">Now</span>
+          </div>
+        `;
+      } else {
+        chatBody.innerHTML += `
+          <div class="tg-msg tg-msg-out">
+            ${escapeHtml(text)}
+          </div>
+        `;
+      }
+      chatBody.scrollTop = chatBody.scrollHeight;
+
+      // Call Chatbot API
+      try {
+        const res = await fetch("/api/chat", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            query: text,
+            conversation_id: "sim_" + platform + "_" + Date.now(),
+            channel: platform
+          })
+        });
+
+        const data = await res.json();
+        
+        // Append Bot Reply
+        if (platform === "wa") {
+          chatBody.innerHTML += `
+            <div class="wa-msg wa-msg-in">
+              ${escapeHtml(data.response)}
+              ${data.is_escalated ? `<br><small style="color:#d9534f">⚠️ Query forwarded to faculty (Ticket #${data.ticket_id})</small>` : ''}
+              <span class="wa-time">Now</span>
+            </div>
+          `;
+        } else {
+          chatBody.innerHTML += `
+            <div class="tg-msg tg-msg-in">
+              ${escapeHtml(data.response)}
+              ${data.is_escalated ? `<br><small style="color:#f87171">⚠️ Forwarded to Faculty (Ticket #${data.ticket_id})</small>` : ''}
+            </div>
+          `;
+        }
+        chatBody.scrollTop = chatBody.scrollHeight;
+      } catch (err) {
+        console.error("Simulator error:", err);
+      }
+    }
+
+    function escapeHtml(str) {
+      if (!str) return "";
+      return str.replace(/[&<>"']/g, function(m) {
+        return {
+          '&': '&amp;',
+          '<': '&lt;',
+          '>': '&gt;',
+          '"': '&quot;',
+          "'": '&#39;'
+        }[m];
+      });
+    }
+
+    document.getElementById("waInput").addEventListener("keydown", (e) => {
+      if (e.key === "Enter") sendSimulatorMsg("wa");
+    });
+    document.getElementById("tgInput").addEventListener("keydown", (e) => {
+      if (e.key === "Enter") sendSimulatorMsg("tg");
+    });
+  </script>
+</body>
+</html>
+
