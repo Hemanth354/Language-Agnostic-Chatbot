@@ -9,7 +9,6 @@ from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
 
 from app.config import (
     BASE_DIR, SUPPORTED_LANGUAGES, SPEECH_LANG_CODES,
@@ -17,15 +16,16 @@ from app.config import (
 )
 from app.database import (
     init_db, get_db, save_conversation, save_message,
-    get_conversation_history, get_all_circulars, delete_circular
+    get_conversation_history, get_all_circulars, delete_circular, log_event
 )
-from app.translation_service import translation_service
-from app.rag_service import rag_service
-from app.llm_service import llm_service
+from app.translation_service import translate_to_english, translate_from_english
+from app.rag_service import search
+from app.llm_service import generate_answer
+from app.guardrails import validate_language, check_sensitive_information, evaluate_query
 from app.circular_parser import (
     seed_sample_circulars_if_empty, ingest_circular, extract_text_from_file
 )
-from app.faculty_service import faculty_service
+from app.faculty_service import escalate_query, respond_to_ticket, list_all_tickets
 from app.channels.whatsapp import verify_webhook as verify_wa, send_whatsapp_message
 from app.channels.telegram import send_telegram_message
 
@@ -58,25 +58,12 @@ TEMPLATES_DIR.mkdir(parents=True, exist_ok=True)
 app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
 templates = Jinja2Templates(directory=str(TEMPLATES_DIR))
 
-# Pydantic Schemas
-class ChatRequest(BaseModel):
-    query: str
-    conversation_id: Optional[str] = None
-    preferred_lang: Optional[str] = "auto"
-    user_name: Optional[str] = "Student"
-    channel: Optional[str] = "web"
-
-class FacultyReplyRequest(BaseModel):
-    ticket_id: str
-    reply: str
-    assigned_faculty: Optional[str] = "Faculty In-Charge"
-
 # Startup event
 @app.on_event("startup")
 async def startup_event():
     init_db()
     seed_sample_circulars_if_empty()
-    logger.info("Application started. Sample circulars and DB ready.")
+    logger.info("Application started procedurally. Sample circulars and DB ready.")
 
 # ================= PAGE ROUTES =================
 
@@ -101,7 +88,7 @@ async def admin_page(request: Request):
 @app.get("/faculty", response_class=HTMLResponse)
 async def faculty_page(request: Request):
     """Faculty Escalation & Ticket Resolution Dashboard."""
-    tickets = faculty_service.list_all_tickets()
+    tickets = list_all_tickets()
     return templates.TemplateResponse("faculty.html", {
         "request": request,
         "tickets": tickets
@@ -125,50 +112,138 @@ async def get_languages():
     }
 
 @app.post("/api/chat")
-async def process_chat(req: ChatRequest):
+async def process_chat(request: Request):
     """
-    Core Pipeline:
-    1. Language Detection & IndicTrans Translation to English
-    2. LangChain-style History Retrieval
-    3. MiniLM Embeddings & ChromaDB Semantic Search
-    4. Gemma-2 LLM Reasoning & Toxicity/Sentiment Guardrail
-    5. Automatic Faculty Redirection if confidence is low
-    6. Translation back to Student's Native Language
-    7. Persistent Logging to SQLite
+    Procedural Chat Processing (Zero Python Classes):
+    Accepts raw JSON request dict.
     """
-    raw_query = req.query.strip()
+    req_data = await request.json()
+    raw_query = req_data.get("query", "").strip()
     if not raw_query:
         return JSONResponse({"error": "Empty query"}, status_code=400)
 
-    conv_id = req.conversation_id or str(uuid.uuid4())
-    user_name = req.user_name or "Student"
-    pref_lang = req.preferred_lang or "auto"
+    conv_id = req_data.get("conversation_id") or str(uuid.uuid4())
+    user_name = req_data.get("user_name") or "Student"
+    pref_lang = req_data.get("preferred_lang") or "auto"
+    channel = req_data.get("channel") or "web"
 
-    save_conversation(conv_id, user_name, pref_lang, req.channel or "web")
+    save_conversation(conv_id, user_name, pref_lang, channel)
+
+    # --- GUARDRAIL STEP 0: Pre-Translation Verification (Language & PII/Security) ---
+    lang_guard = validate_language(raw_query, user_selected_lang=pref_lang)
+    if not lang_guard["passed"]:
+        log_event("GUARDRAIL_UNSUPPORTED_LANGUAGE", f"Query: {raw_query[:100]}")
+        guard_msg = lang_guard["message"]
+        save_message(
+            conversation_id=conv_id, sender="bot", user_query=raw_query, detected_lang="unsupported",
+            translated_query=raw_query, response_text=guard_msg, translated_response=guard_msg,
+            response_lang="en", confidence_score=0.0, is_escalated=False, ticket_id=None,
+            metadata={"guardrail_triggered": True, "violation": lang_guard.get("violation_type")}
+        )
+        return {
+            "conversation_id": conv_id,
+            "original_query": raw_query,
+            "detected_lang": "unsupported",
+            "language_name": "Unsupported / Foreign Language",
+            "translated_query": raw_query,
+            "english_response": guard_msg,
+            "response": guard_msg,
+            "confidence": 0.0,
+            "is_escalated": False,
+            "guardrail_triggered": True,
+            "violation_type": lang_guard.get("violation_type", "unsupported_language"),
+            "ticket_id": None,
+            "sources": [],
+            "speech_code": "en-IN"
+        }
+
+    raw_sens_guard = check_sensitive_information(raw_query)
+    if not raw_sens_guard["passed"]:
+        log_event("GUARDRAIL_SENSITIVE_INFO", f"Violation: {raw_sens_guard.get('violation_type')}, Query: {raw_query[:100]}")
+        guard_msg = raw_sens_guard["message"]
+        save_message(
+            conversation_id=conv_id, sender="bot", user_query=raw_query, detected_lang="en",
+            translated_query=raw_query, response_text=guard_msg, translated_response=guard_msg,
+            response_lang="en", confidence_score=0.0, is_escalated=False, ticket_id=None,
+            metadata={"guardrail_triggered": True, "violation": raw_sens_guard.get("violation_type")}
+        )
+        return {
+            "conversation_id": conv_id,
+            "original_query": raw_query,
+            "detected_lang": "en",
+            "language_name": "English",
+            "translated_query": raw_query,
+            "english_response": guard_msg,
+            "response": guard_msg,
+            "confidence": 0.0,
+            "is_escalated": False,
+            "guardrail_triggered": True,
+            "violation_type": raw_sens_guard.get("violation_type", "sensitive_info"),
+            "ticket_id": None,
+            "sources": [],
+            "speech_code": "en-IN"
+        }
 
     # Step 1: IndicTrans translation layer to English
-    translated_query, detected_lang = translation_service.translate_to_english(
+    translated_query, detected_lang = translate_to_english(
         raw_query, user_selected_lang=pref_lang
     )
     lang_name = SUPPORTED_LANGUAGES.get(detected_lang, detected_lang)
+
+    # --- GUARDRAIL STEP 1: Post-Translation Verification (PII, Harm & Scope) ---
+    trans_guard = evaluate_query(raw_query, translated_query=translated_query, user_lang=detected_lang)
+    if not trans_guard["passed"]:
+        log_event(f"GUARDRAIL_{trans_guard.get('violation_type', 'VIOLATION').upper()}", f"Query: {raw_query[:100]} | Translated: {translated_query[:100]}")
+        guard_msg = trans_guard["message"]
+        translated_guard_msg = translate_from_english(guard_msg, target_lang=detected_lang)
+
+        save_message(
+            conversation_id=conv_id, sender="bot", user_query=raw_query, detected_lang=detected_lang,
+            translated_query=translated_query, response_text=guard_msg, translated_response=translated_guard_msg,
+            response_lang=detected_lang, confidence_score=0.0, is_escalated=False, ticket_id=None,
+            metadata={"guardrail_triggered": True, "violation": trans_guard.get("violation_type")}
+        )
+        return {
+            "conversation_id": conv_id,
+            "original_query": raw_query,
+            "detected_lang": detected_lang,
+            "language_name": lang_name,
+            "translated_query": translated_query,
+            "english_response": guard_msg,
+            "response": translated_guard_msg,
+            "confidence": 0.0,
+            "is_escalated": False,
+            "guardrail_triggered": True,
+            "violation_type": trans_guard.get("violation_type", "restricted"),
+            "ticket_id": None,
+            "sources": [],
+            "speech_code": SPEECH_LANG_CODES.get(detected_lang, "en-IN")
+        }
 
     # Step 2: Conversational history
     history = get_conversation_history(conv_id, limit=5)
 
     # Step 3: Semantic circular search via MiniLM & ChromaDB
-    relevant_chunks = rag_service.search(translated_query, top_k=3)
+    relevant_chunks = search(translated_query, top_k=3)
 
-    # Step 4: Gemma2 LLM Answer generation + Moderation check
-    llm_result = llm_service.generate_answer(translated_query, relevant_chunks, history)
+    # Step 4: Gemma2 LLM Answer generation with LangChain
+    llm_result = generate_answer(
+        query=translated_query,
+        context_chunks=relevant_chunks,
+        history=history,
+        raw_query=raw_query,
+        user_lang=detected_lang
+    )
     english_answer = llm_result["answer"]
     confidence = llm_result["confidence"]
     should_escalate = llm_result["escalate"]
+    guardrail_triggered = llm_result.get("guardrail_triggered", False)
     sources = llm_result.get("source_circulars", [])
 
     # Step 5: Auto-redirect to faculty if low confidence or unknown circular
     ticket_id = None
-    if should_escalate or confidence < 0.35:
-        escalation = faculty_service.escalate_query(
+    if (should_escalate or confidence < 0.35) and not guardrail_triggered:
+        escalation = escalate_query(
             conversation_id=conv_id,
             student_name=user_name,
             student_lang=detected_lang,
@@ -180,7 +255,7 @@ async def process_chat(req: ChatRequest):
         english_answer += f" (Logged as Ticket #{ticket_id} for faculty review)."
 
     # Step 6: Translate back to student's native language
-    translated_response = translation_service.translate_from_english(
+    translated_response = translate_from_english(
         english_answer, target_lang=detected_lang
     )
 
@@ -272,7 +347,7 @@ async def remove_circular(circular_id: int):
 
 @app.get("/api/faculty/tickets")
 async def get_tickets(status: Optional[str] = Query(None)):
-    tickets = faculty_service.list_all_tickets(status)
+    tickets = list_all_tickets(status)
     return {"tickets": tickets}
 
 @app.get("/api/ticket/{ticket_id}")
@@ -287,11 +362,12 @@ async def check_ticket_status(ticket_id: str):
     return {"ticket": dict(ticket)}
 
 @app.post("/api/faculty/reply")
-async def reply_ticket(data: FacultyReplyRequest):
-    res = faculty_service.respond_to_ticket(
-        ticket_id=data.ticket_id,
-        faculty_reply=data.reply,
-        assigned_faculty=data.assigned_faculty or "Faculty In-Charge"
+async def reply_ticket(request: Request):
+    data = await request.json()
+    res = respond_to_ticket(
+        ticket_id=data.get("ticket_id"),
+        faculty_reply=data.get("reply"),
+        assigned_faculty=data.get("assigned_faculty") or "Faculty In-Charge"
     )
     return res
 
@@ -308,6 +384,37 @@ async def whatsapp_verify(
         return Response(content=str(challenge), media_type="text/plain")
     return Response(content="Verification failed", status_code=status.HTTP_403_FORBIDDEN)
 
+async def _internal_chat(query: str, conv_id: str, channel: str = "web"):
+    """Helper to route chat requests internally without network hops."""
+    # Step 1: Translation
+    translated_query, detected_lang = translate_to_english(query)
+    lang_name = SUPPORTED_LANGUAGES.get(detected_lang, detected_lang)
+
+    # Step 2: History
+    history = get_conversation_history(conv_id, limit=5)
+
+    # Step 3: Search
+    relevant_chunks = search(translated_query, top_k=3)
+
+    # Step 4: Answer
+    llm_result = generate_answer(
+        query=translated_query,
+        context_chunks=relevant_chunks,
+        history=history,
+        raw_query=query,
+        user_lang=detected_lang
+    )
+
+    # Step 5: Translate back
+    ans_text = llm_result["answer"]
+    translated_resp = translate_from_english(ans_text, target_lang=detected_lang)
+    return {
+        "response": translated_resp,
+        "language_name": lang_name,
+        "is_escalated": llm_result.get("escalate", False),
+        "ticket_id": None
+    }
+
 @app.post("/api/whatsapp/webhook")
 async def whatsapp_incoming(request: Request):
     data = await request.json()
@@ -320,13 +427,8 @@ async def whatsapp_incoming(request: Request):
             from_num = msg.get("from")
             body = msg.get("text", {}).get("body", "")
 
-            # Process through chatbot
-            chat_req = ChatRequest(query=body, conversation_id=f"wa_{from_num}", channel="whatsapp")
-            bot_resp = await process_chat(chat_req)
-
-            # Reply to student on WhatsApp
-            reply_text = bot_resp["response"]
-            send_whatsapp_message(from_num, reply_text)
+            bot_resp = await _internal_chat(query=body, conv_id=f"wa_{from_num}", channel="whatsapp")
+            send_whatsapp_message(from_num, bot_resp["response"])
     except Exception as e:
         logger.error(f"WhatsApp webhook processing error: {e}")
     return {"status": "ok"}
@@ -340,13 +442,9 @@ async def telegram_incoming(request: Request):
         text = message.get("text", "")
 
         if chat_id and text:
-            chat_req = ChatRequest(query=text, conversation_id=f"tg_{chat_id}", channel="telegram")
-            bot_resp = await process_chat(chat_req)
-
-            # Reply to student on Telegram
+            bot_resp = await _internal_chat(query=text, conv_id=f"tg_{chat_id}", channel="telegram")
             reply_text = f"*{bot_resp['response']}*\n\n_(Language: {bot_resp['language_name']})_"
             send_telegram_message(chat_id, reply_text)
     except Exception as e:
         logger.error(f"Telegram webhook error: {e}")
     return {"status": "ok"}
-

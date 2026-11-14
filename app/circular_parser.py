@@ -4,7 +4,7 @@ import logging
 from typing import List, Dict, Any, Tuple
 from pathlib import Path
 from app.database import create_circular, get_all_circulars
-from app.rag_service import rag_service
+from app.rag_service import index_circular_chunks
 
 logger = logging.getLogger("circular_parser")
 
@@ -90,7 +90,7 @@ def ingest_circular(title: str, content: str, circular_no: str = "", category: s
         "issue_date": issue_date
     }
 
-    rag_service.index_circular_chunks(circ_id, chunks, metadata)
+    index_circular_chunks(circ_id, chunks, metadata)
     logger.info(f"Ingested circular #{circ_id}: '{title}' with {len(chunks)} chunks.")
     return circ_id
 

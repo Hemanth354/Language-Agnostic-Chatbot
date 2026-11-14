@@ -182,6 +182,16 @@ function appendBotMessage(data) {
     `;
   }
 
+  let guardrailHtml = "";
+  if (data.guardrail_triggered) {
+    const vType = (data.violation_type || "Institutional Policy").replace(/_/g, " ").toUpperCase();
+    guardrailHtml = `
+      <div class="tag-guardrail">
+        🛡️ Institutional Guardrail Triggered • [${escapeHtml(vType)}]
+      </div>
+    `;
+  }
+
   let translationInfo = "";
   if (data.translated_query && data.detected_lang !== "en") {
     translationInfo = `
@@ -204,6 +214,7 @@ function appendBotMessage(data) {
       ${translationInfo}
       ${sourcesHtml}
       ${escalationHtml}
+      ${guardrailHtml}
     </div>
   `;
   container.appendChild(row);

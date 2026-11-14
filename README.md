@@ -31,6 +31,7 @@ agnostic_chatbot/
 │   ├── config.py                 # 22 Indian language codes, credentials, and settings
 │   ├── database.py               # SQLite schema (conversations, circulars, faculty tickets)
 │   ├── translation_service.py    # IndicTrans (Hugging Face) translation layer
+│   ├── guardrails.py             # Multi-layer Guardrails (Sensitive Info, Language, Scope)
 │   ├── rag_service.py            # LangChain + all-MiniLM-L6-v2 + ChromaDB
 │   ├── llm_service.py            # LangChain + Gemma-2 LLM reasoning & moderation
 │   ├── circular_parser.py        # PDF/Text parser & pre-seeded RGUKT official circulars
@@ -124,3 +125,24 @@ start.bat
 
 4. **Sentiment & Abuse Guardrail (Slide 4):**
    - Detects offensive/filthy queries and rejects them with a polite academic warning.
+
+---
+
+## 🛡️ Multi-Layer LLM Guardrails System
+
+The chatbot incorporates a multi-layer institutional guardrail system (`app/guardrails.py`):
+
+1. **Sensitive Information & Privacy Guardrail:**
+   - Blocks requests asking for confidential exam papers ("question paper leak", "tomorrow's exam paper").
+   - Blocks unauthorized grade modification ("hack portal", "change my marks").
+   - Blocks personal contact details of staff or students (warden personal phone, girl student contacts, faculty salary).
+   - Blocks PII leakage (Aadhaar numbers `\b\d{4}\s?\d{4}\s?\d{4}\b`, PAN cards, Credit cards, Passwords, OTPs).
+   - Protects against prompt injection / jailbreak ("Ignore previous instructions", "DAN mode", SQL injection).
+
+2. **Language & Script Validation Guardrail:**
+   - Enforces support for English and all 22 official Indian languages (Telugu, Hindi, Tamil, Bengali, Marathi, etc.).
+   - Blocks unsupported foreign languages (Russian/Cyrillic, Chinese/Hanzi, Japanese, Korean, Greek) and nonsensical keyboard mash gibberish.
+
+3. **Scope & Domain Relevance Guardrail:**
+   - Keeps the chatbot strictly focused on campus circulars, fees, exams, scholarships, hostels, and academic affairs.
+   - Refuses out-of-scope requests (e.g., crypto trading scripts, cooking recipes, general sports trivia).
